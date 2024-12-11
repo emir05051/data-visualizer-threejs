@@ -1,89 +1,61 @@
-import getDistance from "geolib/es/getPreciseDistance";
+import * as THREE from "three";
 
-let pollutionData = [];
-
-let token = `${env.TOKEN}`;
+let token = `${import.meta.env.VITE_TOKEN}`;
 let long1 = "-90.0";
 let lat1 = "-180.0";
 let long2 = "90.0";
 let lat2 = "180.0";
-fetch(
-  `https://api.waqi.info/v2/map/bounds?latlng=${long1},${lat1},${long2},${lat2}&networks=all&token=${token}`
-).then((res) => {
-  res.text().then((e) => {
-    pollutionData = JSON.parse(e).data;
-    let lonStep = 30;
-    let latStep = 60;
-    console.log(pollutionData);
 
-    // for (let i = -90; i < 90; i += latStep) {
-    //   for (let j = -180; j < 180; j += lonStep) {
-    //     let tmp = { lat: i, lon: j, aqi: interpolatePollution(i, j) };
-    //     pollutionData.push(tmp);
-    //   }
-    // }
-    interpolatePollution(-30, -60);
-    console.log("fINISHED");
+export function fetchPollutionData() {
+  return fetch(
+    `https://api.waqi.info/v2/map/bounds?latlng=${long1},${lat1},${long2},${lat2}&networks=all&token=${token}`
+  )
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then((data) => data.data)
+    .catch((error) => {
+      console.error("Error fetching pollution data:", error);
+      return null;
+    });
+}
 
-    // createPollutionMap(pollutionData, 512, 512);
-  });
-});
-
-function createPollutionMap(data, width, height) {
+export function createPollutionMap(data, width, height) {
   const canvas = document.createElement("canvas");
-  document.body.appendChild(canvas);
+  document.body.append(canvas);
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  console.log(data);
 
-  // Fill with default color (e.g., black for zero pollution)
-  ctx.fillStyle = "black";
+  ctx.fillStyle = "green";
   ctx.fillRect(0, 0, width, height);
 
-  // Map pollution data to canvas
   data.forEach((point) => {
-    const x = Math.floor(((point.lon + 180) / 360) * width); // Map longitude to X
-    const y = Math.floor(((90 - point.lat) / 180) * height); // Map latitude to Y
-    const intensity = Math.min(255, Math.max(0, parseInt(point.aqi) * 2.55)); // Map pollution to 0-255
+    const x = Math.floor(((point.lon + 180) / 360) * width);
+    const y = Math.floor(((90 - point.lat) / 180) * height);
 
-    ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`; // Grayscale
-    ctx.fillRect(x, y, 5, 5); // Draw a small square for each point
-  });
+    const normalizedAQI = Math.min(point.aqi / 300, 1.0);
 
-  //   let disMap = new THREE.CanvasTexture(canvas);
-  //   const groundMaterial = new THREE.MeshStandardMaterial({
-  //     displacementMap: disMap,
-  //     displacementScale: 10.0, // Adjust for your terrain
-  //   });
+    let color;
 
-  return canvas;
-}
-function interpolatePollution(lat, lon) {
-  let totalPollution = 0;
-  let totalWeight = 0;
-  debugger;
-  let counter = 0;
-
-  pollutionData.forEach((point) => {
-    if (counter === 10) return;
-    if (point.aqi === "-") return;
-
-    const distance = getDistance(
-      { latitude: lat, longitude: lon },
-      { latitude: point.lat, longitude: point.lon }
-    );
-    const weight = 1 / distance + 1;
-    totalPollution += parseInt(point.aqi) * weight;
-
-    if (isNaN(totalPollution)) {
-      console.log(lat, lon);
-
-      console.log(point);
+    if (normalizedAQI <= 0.1) {
+      color = `rgba(13, 140, 118, ${normalizedAQI})`;
+    } else if (normalizedAQI <= 0.3) {
+      color = `rgba(255, 222, 51, ${normalizedAQI})`;
+    } else if (normalizedAQI <= 0.6) {
+      color = `rgba(133, 23, 57, ${normalizedAQI})`;
+    } else {
+      color = `rgba(112, 15, 155, ${normalizedAQI})`;
     }
 
-    totalWeight += weight;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
   });
 
-  return totalWeight > 0 ? totalPollution / totalWeight : 0;
+  return new THREE.CanvasTexture(canvas);
 }

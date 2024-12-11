@@ -4,22 +4,7 @@ import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { initTerrain } from "/src/terrain.js";
 import { createDebugUI, createNormalUI } from "/src/gui.js";
 
-export const defaultConfig = {
-  width: 3828,
-  height: 1928,
-  segmentWidth: 1000,
-  segmentHeight: 1000,
-  horizontalTexture: 1,
-  verticalTexture: 1,
-  dispScale: 80,
-  heightmap: "world.png",
-  colorConfig: {
-    waterColor: new THREE.Color(0x005493),
-    landColorLow: new THREE.Color(0x22dd22),
-    landColorHigh: new THREE.Color(0xff0000),
-    waterLevel: 0.0,
-  },
-};
+import { defaultConfig } from "./configs";
 
 export let camera;
 export let scene;
@@ -37,7 +22,7 @@ function init() {
   // INIT RENDERER
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  // document.body.appendChild(renderer.domElement);
+  document.body.appendChild(renderer.domElement);
 
   // INIT CAMERA
   camera = new THREE.PerspectiveCamera(
@@ -61,11 +46,11 @@ function init() {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light
   scene.add(ambientLight);
 
-  // initTerrain(scene, defaultConfig);
+  initTerrain(scene, defaultConfig);
 
   // UI
   // createDebugUI(scene);
-  // createNormalUI(scene);
+  createNormalUI(scene);
 }
 
 function animate() {

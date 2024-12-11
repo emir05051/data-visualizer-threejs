@@ -2,26 +2,15 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import * as THREE from "three";
 import { initTerrain } from "/src/terrain";
 
-import { pollutionFragmentShader, pollutionVertexShader } from "./shaders";
+import { floodDefaultConfig, pollutionDefaultConfig } from "./configs";
 
-const worldConfig = {
-  width: 3828,
-  height: 1928,
-  segmentWidth: 1000,
-  segmentHeight: 1000,
-  horizontalTexture: 1,
-  verticalTexture: 1,
-  dispScale: 80,
-  heightmap: "world.png",
-  colorConfig: {
-    waterColor: new THREE.Color(0x005493),
-    landColorLow: new THREE.Color(0x22dd22),
-    landColorHigh: new THREE.Color(0xff0000),
-    waterLevel: 0.0,
-  },
+let worldConfig = floodDefaultConfig;
+
+let guiConfig = {
+  showDebugger: false,
 };
-export function createDebugUI(scene) {
-  const gui = new GUI({ title: "Debug" });
+
+export function createDebugUI(scene, gui) {
   gui
     .add(worldConfig, "segmentWidth", 1, 3000)
     .step(1)
@@ -65,7 +54,7 @@ export function createDebugUI(scene) {
       "heightmap5.png",
       "world.png",
     ])
-    .onChange(() => {
+    .onChange((scene) => {
       initTerrain(scene, worldConfig);
     });
 }
@@ -81,11 +70,17 @@ export function createNormalUI(scene) {
     waterLevel: 0,
   };
 
-  gui.add(sceneConfig, "currentConfig", ["flood", "pollution"]).onChange(() => {
-    // worldConfig
-    console.log(sceneConfig);
-    console.log(worldConfig);
-  });
+  gui
+    .add(sceneConfig, "currentConfig", ["flood", "pollution"])
+    .onChange((config) => {
+      // worldConfig
+      if (config === "flood") {
+        worldConfig = floodDefaultConfig;
+      } else {
+        worldConfig = pollutionDefaultConfig;
+      }
+      initTerrain(scene, worldConfig);
+    });
 
   const colorFolder = gui.addFolder("Change colors");
 
@@ -113,6 +108,17 @@ export function createNormalUI(scene) {
       worldConfig.colorConfig.waterLevel = sceneConfig.waterLevel;
       initTerrain(scene, worldConfig);
     });
+
+  gui.add(guiConfig, "showDebugger").onChange((state) => {
+    if (state) {
+      debug.show();
+    } else {
+      debug.hide();
+    }
+  });
+  const debug = gui.addFolder("Debug");
+  debug.hide();
+  createDebugUI(scene, debug);
 }
 
 function stringToColor(hexColor) {
